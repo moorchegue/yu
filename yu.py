@@ -1,5 +1,5 @@
 import requests
-import xmltodict
+from xml.etree import ElementTree
 
 
 API_SITE = "http://api.uslugi.yandex.ru"
@@ -31,12 +31,12 @@ class YandexUslugiBase(object):
 
     def _get_response(self, url, params):
         response = requests.get(url, params=params, headers=self.headers)
-        data = xmltodict.parse(response.content)
 
         if response.status_code is not 200:
-            raise error_factory(response.status_code, data['error'])
+            message = ElementTree.fromstring(response.content).attrib['message']
+            raise error_factory(response.status_code, message)
 
-        return data
+        return response.content
 
     def _validate(self, required, acceptable, actual):
         """ Check actual request fields to be necessary and sufficient.
@@ -204,24 +204,25 @@ class BankMortgage(YandexUslugiBase, YandexUslugiSearcheable):
     )
 
 
-def error_factory(code, error):
+def error_factory(code, message):
     """ There are two major kinds of errors: 500 and anything else.
 
         500 means it's services bad, any other means you are the stupid one.
         So you have a chance to handle those more wisely.
     """
     if code == 500:
-        return YandexUslugiInternalServerError(error)
+        return YandexUslugiInternalServerError(code, message)
 
-    return YandexUslugiError(error)
+    return YandexUslugiError(code, message)
 
 
 class YandexUslugiError(Exception):
-    def __init__(self, error):
-        self.error = error
+    def __init__(self, code, message):
+        self.code = code
+        self.message = message
 
     def __str__(self):
-        return '%s: %s' % (self.error['@code'], self.error['@message'])
+        return '%s: %s' % (self.code, self.message)
 
 
 class YandexUslugiInternalServerError(YandexUslugiError):
