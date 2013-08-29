@@ -1,9 +1,4 @@
-import os
-
 from setuptools import setup, find_packages
-
-here = os.path.abspath(os.path.dirname(__file__))
-README = open(os.path.join(here, 'README.md')).read()
 
 install_requires = [
     'requests==1.2.3',
@@ -14,7 +9,7 @@ setup(
     name='yu',
     version='0.0.1',
     description='Yandex Uslugi API Python client implementation',
-    long_description=README,
+    long_description='See README.md',
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
