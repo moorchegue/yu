@@ -104,13 +104,12 @@ class BankCredit(YandexUslugiBase, YandexUslugiSearcheable):
         'currency',
         'sum',
         'period',
-        'restrictions',
-        'banks',
-        'start',
-        'limit',
     )
     _acceptable_search = (
         'key',
+        'restrictions',
+        'banks',
+        'start',
         'limit',
         'order',
         'advanced-repayment',
