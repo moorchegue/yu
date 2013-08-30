@@ -1,5 +1,7 @@
+from functools import reduce
+
 import requests
-from xml.etree import ElementTree
+from xmltodict import parse
 
 
 API_SITE = "http://api.uslugi.yandex.ru"
@@ -16,6 +18,7 @@ class YandexUslugiBase(object):
 
     _required_get = ('region', )
     _acceptable_get = ('key', )
+    _get_path = []
 
     def __init__(self, key, referer, version=API_VERSION):
         self.headers = {
@@ -27,16 +30,17 @@ class YandexUslugiBase(object):
     def get(self, id_, *args, **kwargs):
         self._validate(self._required_get, self._acceptable_get, kwargs)
         url = '%s/%s' % (self.url, id_)
-        return self._get_response(url, kwargs)
+        data = self._get_response(url, kwargs)
+        return reduce(dict.get, self._get_path, data)
 
     def _get_response(self, url, params):
         response = requests.get(url, params=params, headers=self.headers)
+        data = parse(response.content, dict_constructor=AttrDict, attr_prefix='', cdata_key='value')
 
         if response.status_code is not 200:
-            message = ElementTree.fromstring(response.content).attrib['message']
-            raise error_factory(response.status_code, message)
+            raise error_factory(response.status_code, data.error.message, data.error.comment)
 
-        return response.content
+        return data
 
     def _validate(self, required, acceptable, actual):
         """ Check actual request fields to be necessary and sufficient.
@@ -53,28 +57,36 @@ class YandexUslugiBase(object):
 class YandexUslugiSearcheable(object):
     _required_search = ('region', )
     _acceptable_search = ('key')
+    _list_path = []
 
     def find(self, *args, **kwargs):
         self._validate(self._required_search, self._acceptable_search, kwargs)
         url = '%s/%s' % (self.url, 'search')
-        return self._get_response(url, kwargs)
+        data = self._get_response(url, kwargs)
+        return reduce(dict.get, self._list_path, data)
 
 
 class YandexUslugiListable(object):
     _required_all = ('region', )
     _acceptable_all = ('key', )
+    _list_path = []
 
     def all(self, *args, **kwargs):
         self._validate(self._required_all, self._acceptable_all, kwargs)
-        return self._get_response(self.url, kwargs)
+        data = self._get_response(self.url, kwargs)
+        return reduce(dict.get, self._list_path, data)
 
 
 class Bank(YandexUslugiBase, YandexUslugiListable):
     resource = 'banks'
+    _get_path = ['bank']
+    _list_path = ['banks', 'bank']
 
 
 class BankDeposit(YandexUslugiBase, YandexUslugiSearcheable):
     resource = 'banks/deposits'
+    _get_path = ['deposit']
+    _list_path = ['deposits', 'deposit']
     _required_search = ('region', 'currency', 'sum', 'period')
     _acceptable_search = (
         'key',
@@ -99,6 +111,8 @@ class BankDeposit(YandexUslugiBase, YandexUslugiSearcheable):
 
 class BankCredit(YandexUslugiBase, YandexUslugiSearcheable):
     resource = 'banks/credits'
+    _get_path = ['credit']
+    _list_path = ['credits', 'credit']
     _required_search = (
         'region',
         'currency',
@@ -131,6 +145,8 @@ class BankCredit(YandexUslugiBase, YandexUslugiSearcheable):
 
 class BankAutoCredit(YandexUslugiBase, YandexUslugiSearcheable):
     resource = 'banks/autocredits'
+    _get_path = ['autocredit']
+    _list_path = ['autocredits', 'autocredit']
     _required_search = (
         'region',
         'currency',
@@ -169,6 +185,8 @@ class BankAutoCredit(YandexUslugiBase, YandexUslugiSearcheable):
 
 class BankMortgage(YandexUslugiBase, YandexUslugiSearcheable):
     resource = 'banks/mortage'
+    _get_path = ['mortages']
+    _list_path = ['mortages', 'mortage']
     _required_search = (
         'region',
         'currency',
@@ -204,26 +222,35 @@ class BankMortgage(YandexUslugiBase, YandexUslugiSearcheable):
     )
 
 
-def error_factory(code, message):
+def error_factory(code, message, comment):
     """ There are two major kinds of errors: 500 and anything else.
 
         500 means it's services bad, any other means you are the stupid one.
         So you have a chance to handle those more wisely.
     """
     if code == 500:
-        return YandexUslugiInternalServerError(code, message)
+        return YandexUslugiInternalServerError(code, message, comment)
 
-    return YandexUslugiError(code, message)
+    return YandexUslugiError(code, message, comment)
 
 
 class YandexUslugiError(Exception):
-    def __init__(self, code, message):
+    def __init__(self, code, message, comment):
         self.code = code
         self.message = message
+        self.comment = comment
 
     def __str__(self):
-        return '%s: %s' % (self.code, self.message)
+        return '%s: %s (%s).' % (self.code, self.message, self.comment)
 
 
 class YandexUslugiInternalServerError(YandexUslugiError):
     pass
+
+
+class AttrDict(dict):
+    """ To access dict fields as object attributes.
+    """
+    def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
