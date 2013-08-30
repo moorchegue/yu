@@ -71,7 +71,7 @@ So:
  'rating': {'stars': None, 'value': None}}
 ```
 
-### Search for deposits
+### Search for credits
 
 ```python
 >>> c = yu.BankCredit('YOURKEY', 'http://your.referer')
