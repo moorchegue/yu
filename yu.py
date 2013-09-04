@@ -16,7 +16,7 @@ class YandexUslugiBase(object):
     resource = ''
     url = ''
 
-    _required_get = ('region', )
+    _required_get = ()
     _acceptable_get = ('key', )
     _get_path = []
 
@@ -81,6 +81,7 @@ class Bank(YandexUslugiBase, YandexUslugiListable):
     resource = 'banks'
     _get_path = ['bank']
     _list_path = ['banks', 'bank']
+    _required_get = ('region', )
 
 
 class BankDeposit(YandexUslugiBase, YandexUslugiSearcheable):
