@@ -7,7 +7,7 @@ install_requires = [
 
 setup(
     name='yu',
-    version='0.2.1',
+    version='0.2.2',
     description='Yandex Uslugi API Python client implementation',
     long_description='See README.md',
     classifiers=[
