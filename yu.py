@@ -54,27 +54,35 @@ class YandexUslugiBase(object):
                 raise YandexUslugiRequestError(0, 'Request has not been sent.', '"%s" field not accepted.' % field)
 
 
-class YandexUslugiSearcheable(object):
+class YandexUslugiIterable(object):
+    _list_path = []
+
+    def _list_anyway(self, data):
+        reducted = reduce(dict.get, self._list_path, data)
+        if type(reducted) is not list:
+            return [reducted]
+        return reducted
+
+
+class YandexUslugiSearcheable(YandexUslugiIterable):
     _required_search = ('region', )
     _acceptable_search = ('key')
-    _list_path = []
 
     def find(self, *args, **kwargs):
         self._validate(self._required_search, self._acceptable_search, kwargs)
         url = '%s/%s' % (self.url, 'search')
         data = self._get_response(url, kwargs)
-        return reduce(dict.get, self._list_path, data)
+        return self._list_anyway(data)
 
 
-class YandexUslugiListable(object):
+class YandexUslugiListable(YandexUslugiIterable):
     _required_all = ('region', )
     _acceptable_all = ('key', )
-    _list_path = []
 
     def all(self, *args, **kwargs):
         self._validate(self._required_all, self._acceptable_all, kwargs)
         data = self._get_response(self.url, kwargs)
-        return reduce(dict.get, self._list_path, data)
+        return self._list_anyway(data)
 
 
 class Bank(YandexUslugiBase, YandexUslugiListable):
