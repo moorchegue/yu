@@ -47,11 +47,11 @@ class YandexUslugiBase(object):
         """
         for field in required:
             if field not in actual:
-                raise AttributeError('%s field is required' % field)
+                raise YandexUslugiRequestError(0, 'Request has not been sent.', '"%s" field is required.' % field)
 
         for field in actual:
             if field not in required + acceptable:
-                raise AttributeError('%s field is not accepted' % field)
+                raise YandexUslugiRequestError(0, 'Request has not been sent.', '"%s" field not accepted.' % field)
 
 
 class YandexUslugiSearcheable(object):
@@ -243,6 +243,12 @@ class YandexUslugiError(Exception):
 
     def __str__(self):
         return '%s: %s (%s).' % (self.code, self.message, self.comment)
+
+
+class YandexUslugiRequestError(YandexUslugiError):
+    """ Request preparation error.
+    """
+    pass
 
 
 class YandexUslugiInternalServerError(YandexUslugiError):
